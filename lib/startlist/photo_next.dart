@@ -3,10 +3,12 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_sound/public/flutter_sound_recorder.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:photomatrix/DataBase/block.dart';
 import 'package:photomatrix/theme/app_theme.dart';
 
 var now = DateTime.now();
@@ -14,9 +16,9 @@ var dateFormat = DateFormat('dd.MM.yyyy');
 String formattedDate = dateFormat.format(now);
 
 class NextPage extends StatefulWidget {
-  final String filename;
-
-  const NextPage({Key? key, required this.filename}) : super(key: key);
+  const NextPage({
+    Key? key,
+  }) : super(key: key);
 
   @override
   _NextPageState createState() => _NextPageState();
@@ -46,13 +48,15 @@ class _NextPageState extends State<NextPage> {
   }
 
   void _toggleRecording() async {
+    final myBloc = BlocProvider.of<MyBloc>(context);
+    final myVariable = myBloc.state;
     try {
       if (_recorder?.isRecording ?? false) {
         String? result = await _recorder?.stopRecorder();
         if (result != null) {
           print('Файл сохранен по пути: $result');
           await saveMusicFile(
-              '${startTime.hour}_${startTime.minute}${widget.filename}',
+              '${startTime.hour}_${startTime.minute}${myVariable}',
               File(result).readAsBytesSync());
         }
         setState(() {
@@ -67,7 +71,7 @@ class _NextPageState extends State<NextPage> {
         }
         Directory? appDocDir = await getExternalStorageDirectory();
         startTime = DateTime.now();
-        String filePath = '${appDocDir?.path}/${widget.filename}';
+        String filePath = '${appDocDir?.path}/${myVariable}';
         await _recorder?.startRecorder(toFile: filePath);
         print('Запись началась и сохраняется в: $filePath');
 
@@ -83,9 +87,11 @@ class _NextPageState extends State<NextPage> {
   }
 
   Future<void> saveMusicFile(String fileName, List<int> musicData) async {
+    final myBloc = BlocProvider.of<MyBloc>(context);
+    final myVariable = myBloc.state;
     startTime = DateTime.now();
     Directory storageDir = Directory(
-        '/storage/emulated/0/Music/photomatrix/${formattedDate}_${widget.filename}/next');
+        '/storage/emulated/0/Music/photomatrix/${formattedDate}_${myVariable}/next');
     if (!await storageDir.exists()) {
       await storageDir.create(recursive: true);
     }
@@ -134,6 +140,8 @@ class _NextPageState extends State<NextPage> {
 
   @override
   Widget build(BuildContext context) {
+    final myBloc = BlocProvider.of<MyBloc>(context);
+    final myVariable = myBloc.state;
     var brightness = MediaQuery.of(context).platformBrightness;
     bool isLightMode = brightness == Brightness.light;
     return SafeArea(
@@ -160,7 +168,7 @@ class _NextPageState extends State<NextPage> {
                 Align(
                   alignment: Alignment.topCenter,
                   child: Text(
-                    widget.filename,
+                    myVariable,
                     style: const TextStyle(color: Colors.red),
                   ),
                 ),

@@ -8,17 +8,22 @@ import 'package:photomatrix/theme/app_theme.dart';
 import 'navigation_home_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-late DatabaseHelper databaseHelper;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  databaseHelper = DatabaseHelperImpl();
-  await databaseHelper.initDatabasePath();
-  await databaseHelper.initDatabase();
-  await SystemChrome.setPreferredOrientations(<DeviceOrientation>[
+
+  DatabaseHelperImpl dbHelper = DatabaseHelperImpl();
+  await dbHelper.initDatabasePath();
+  // Инициализируем базу данных
+  // await dbHelper.initDatabase();
+  await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown
+    DeviceOrientation.portraitDown,
   ]).then((_) => runApp(
-      BlocProvider(create: (context) => PhotoBloc(), child: const MyApp())));
+        BlocProvider(
+          create: (context) => MyBloc(),
+          child: const MyApp(),
+        ),
+      ));
 }
 
 class MyApp extends StatelessWidget {

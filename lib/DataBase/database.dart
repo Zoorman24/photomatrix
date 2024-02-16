@@ -3,8 +3,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:photomatrix/DataBase/block.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:uuid/uuid.dart';
@@ -15,6 +17,7 @@ abstract class DatabaseHelper {
   Future<void> insertData(
     int person,
     bool status,
+    String myVariable,
   );
   Future<void> printDatabase();
 
@@ -42,6 +45,16 @@ class DatabaseHelperImpl extends DatabaseHelper {
 
     // Создаём путь к файлу базы данных
     databasePath = join(appDocPath, 'test-database.db');
+
+    // Проверяем, существует ли файл базы данных
+    if (await File(databasePath).exists()) {
+      initDatabase();
+      print('База данных уже существует');
+    } else {
+      // Создаем базу данных, если она не существует
+      initDatabase();
+      print('База данных создана');
+    }
   }
 
   @override
@@ -66,19 +79,19 @@ class DatabaseHelperImpl extends DatabaseHelper {
   Future<void> insertData(
     int person,
     bool status,
+    String myVariable,
   ) async {
     var now = DateTime.now();
     var dateFormat = DateFormat('dd.MM-HH:mm');
     String formattedDate = dateFormat.format(now);
     String uniqueId = uuid.v4();
-
     if (status) {
       await database.transaction((txn) async {
         await txn.rawInsert(
           'INSERT INTO my_table_true(id, name, time, person, status, param1, param2, statusphoto) VALUES(?, ?, ?, ?, ?, ?, ?, ?)',
           [
             uniqueId,
-            'name',
+            myVariable,
             formattedDate,
             person,
             status ? 'true' : 'false',
@@ -92,7 +105,13 @@ class DatabaseHelperImpl extends DatabaseHelper {
       await database.transaction((txn) async {
         await txn.rawInsert(
           'INSERT INTO my_table_false(id, name, time, person, status) VALUES(?, ?, ?, ?, ?)',
-          [uniqueId, 'name', formattedDate, person, status ? 'true' : 'false'],
+          [
+            uniqueId,
+            myVariable,
+            formattedDate,
+            person,
+            status ? 'true' : 'false'
+          ],
         );
       });
     }
@@ -145,6 +164,8 @@ class DatabaseHelperImpl extends DatabaseHelper {
   }
 
   void showConfirmationDialog(BuildContext context) {
+    final myBloc = BlocProvider.of<MyBloc>(context);
+    final myVariable = myBloc.state;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -155,10 +176,7 @@ class DatabaseHelperImpl extends DatabaseHelper {
               child: const Text('Нет'),
               onPressed: () {
                 final int person = int.tryParse(_numberController.text) ?? 0;
-                insertData(
-                  person,
-                  false,
-                );
+                insertData(person, false, myVariable);
                 Navigator.of(context).pop();
               },
             ),
@@ -175,6 +193,8 @@ class DatabaseHelperImpl extends DatabaseHelper {
   }
 
   void showSaveConfirmationDialog(BuildContext context) {
+    final myBloc = BlocProvider.of<MyBloc>(context);
+    final myVariable = myBloc.state;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -192,10 +212,7 @@ class DatabaseHelperImpl extends DatabaseHelper {
               child: const Text('Да'),
               onPressed: () {
                 final int person = int.tryParse(_numberController.text) ?? 0;
-                insertData(
-                  person,
-                  true,
-                );
+                insertData(person, true, myVariable);
                 Navigator.of(context).pop();
               },
             ),

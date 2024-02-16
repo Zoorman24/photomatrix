@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:photomatrix/DataBase/block.dart';
+import 'package:photomatrix/DataBase/database.dart';
 import 'package:photomatrix/startlist/photo_start.dart';
 import 'package:photomatrix/theme/app_theme.dart';
 import 'package:photomatrix/photomatrix_repository/model_list.dart';
@@ -104,10 +105,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                         setState(() {
                           dropdownValue = newValue;
                         });
-                        if (newValue != null) {
-                          BlocProvider.of<PhotoBloc>(context)
-                              .add(SetPhotoName(newValue));
-                        }
+                        BlocProvider.of<MyBloc>(context)
+                            .add(SetVariableEvent(newValue!));
                       },
                       itemHeight: 50, // Задаем фиксированную высоту элемента
                       items: dropdownItems
@@ -127,8 +126,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) =>
-                                      PhotoStart(filename: dropdownValue!),
+                                  builder: (context) => PhotoStart(
+                                      dbHelper: DatabaseHelperImpl()),
                                 ),
                               );
                             } else {

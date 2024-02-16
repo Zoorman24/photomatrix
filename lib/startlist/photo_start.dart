@@ -3,10 +3,12 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_sound/public/flutter_sound_recorder.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:photomatrix/DataBase/block.dart';
 import 'package:photomatrix/DataBase/database.dart';
 import 'package:photomatrix/startlist/photo_next.dart';
 import 'package:photomatrix/theme/app_theme.dart';
@@ -16,9 +18,9 @@ var dateFormat = DateFormat('dd.MM.yyyy');
 String formattedDate = dateFormat.format(now);
 
 class PhotoStart extends StatefulWidget {
-  final String? filename;
+  final DatabaseHelperImpl dbHelper;
 
-  const PhotoStart({Key? key, this.filename}) : super(key: key);
+  const PhotoStart({Key? key, required this.dbHelper}) : super(key: key);
 
   @override
   _PhotoStartState createState() => _PhotoStartState();
@@ -29,21 +31,22 @@ class _PhotoStartState extends State<PhotoStart> {
   bool isRecording = false;
   String buttonText = 'запись не идёт';
   Color buttonColor = Colors.grey;
-  DatabaseHelper dbHelper = DatabaseHelperImpl();
 
   late DateTime startTime;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final myBloc = BlocProvider.of<MyBloc>(context);
+    final myVariable = myBloc.state;
+  }
 
   @override
   void initState() {
     super.initState();
+    // Теперь вы можете использовать функции из DatabaseHelperImpl
+    widget.dbHelper.initDatabasePath();
     initRecorder();
-    initializeDatabase();
-  }
-
-  void initializeDatabase() async {
-    await dbHelper.initDatabasePath(); // Установка пути к базе данных
-    await dbHelper.initDatabase(); // Инициализация базы данных
-    // После инициализации базы данных вы можете использовать dbHelper для других операций с базой данных
   }
 
   Future<void> initRecorder() async {
@@ -56,13 +59,15 @@ class _PhotoStartState extends State<PhotoStart> {
   }
 
   void _toggleRecording() async {
+    final myBloc = BlocProvider.of<MyBloc>(context);
+    final myVariable = myBloc.state;
     try {
       if (_recorder?.isRecording ?? false) {
         String? result = await _recorder?.stopRecorder();
         if (result != null) {
           print('Файл сохранен по пути: $result');
           await saveMusicFile(
-              '${startTime.hour}_${startTime.minute}${widget.filename}',
+              '${startTime.hour}_${startTime.minute}${myVariable}',
               File(result).readAsBytesSync());
         }
         setState(() {
@@ -70,15 +75,14 @@ class _PhotoStartState extends State<PhotoStart> {
           buttonText = 'Запись закончена';
           buttonColor = Colors.green;
         });
-        // ignore: use_build_context_synchronously
-        dbHelper.showNumberInput(context);
+        widget.dbHelper.showNumberInput(context);
       } else {
         if (await Permission.storage.request().isDenied) {
           return;
         }
         Directory? appDocDir = await getExternalStorageDirectory();
         startTime = DateTime.now();
-        String filePath = '${appDocDir?.path}/${widget.filename}';
+        String filePath = '${appDocDir?.path}/${myVariable}';
         await _recorder?.startRecorder(toFile: filePath);
         print('Запись началась и сохраняется в: $filePath');
 
@@ -94,12 +98,14 @@ class _PhotoStartState extends State<PhotoStart> {
   }
 
   Future<void> saveMusicFile(String fileName, List<int> musicData) async {
+    final myBloc = BlocProvider.of<MyBloc>(context);
+    final myVariable = myBloc.state;
     startTime = DateTime.now();
-    String namephoto = widget.filename ?? '';
+    String namephoto = myVariable;
 
     Dio dio = Dio();
     Directory storageDir = Directory(
-        '/storage/emulated/0/Music/photomatrix/${formattedDate}_${widget.filename}/start');
+        '/storage/emulated/0/Music/photomatrix/${formattedDate}_${myVariable}/start');
     if (!await storageDir.exists()) {
       await storageDir.create(recursive: true);
     }
@@ -112,7 +118,7 @@ class _PhotoStartState extends State<PhotoStart> {
     List<FileSystemEntity> files = storageDir.listSync();
     int fileCount = files.length;
     int countphoto = fileCount;
-    print('Количество файлов в папке: ${widget.filename}-$fileCount подходов');
+    print('Количество файлов в папке: ${myVariable}-$fileCount подходов');
 
     // Отправка данных на сервер
 
@@ -158,9 +164,7 @@ class _PhotoStartState extends State<PhotoStart> {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => NextPage(
-                      filename: widget.filename ?? '',
-                    ),
+                    builder: (context) => NextPage(),
                   ),
                 ); // Закрыть диалоговое окно
               },
@@ -180,6 +184,8 @@ class _PhotoStartState extends State<PhotoStart> {
 
   @override
   Widget build(BuildContext context) {
+    final myBloc = BlocProvider.of<MyBloc>(context);
+    final myVariable = myBloc.state;
     var brightness = MediaQuery.of(context).platformBrightness;
     bool isLightMode = brightness == Brightness.light;
     return SafeArea(
@@ -206,7 +212,7 @@ class _PhotoStartState extends State<PhotoStart> {
                 Align(
                   alignment: Alignment.topCenter,
                   child: Text(
-                    widget.filename ?? '',
+                    myVariable,
                     style: const TextStyle(color: Colors.red),
                   ),
                 ),

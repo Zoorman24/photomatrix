@@ -1,54 +1,23 @@
-import 'package:equatable/equatable.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:bloc/bloc.dart';
 
-// События
-abstract class PhotoEvent extends Equatable {
-  const PhotoEvent();
+// Определение событий
+abstract class MyEvent {}
 
-  @override
-  List<Object> get props => [];
+class SetVariableEvent extends MyEvent {
+  final String value;
+
+  SetVariableEvent(this.value);
 }
 
-class SetPhotoName extends PhotoEvent {
-  final String name;
-
-  const SetPhotoName(this.name);
-
-  @override
-  List<Object> get props => [name];
-}
-
-class UpdateNameEvent extends PhotoEvent {
-  final String newName;
-
-  const UpdateNameEvent(this.newName);
-
-  @override
-  List<Object> get props => [newName];
-}
-
-// Состояние
-class PhotoState extends Equatable {
-  final String name;
-
-  const PhotoState(this.name);
-
-  @override
-  List<Object> get props => [name];
-}
-
-// BLoC
-class PhotoBloc extends Bloc<PhotoEvent, PhotoState> {
-  PhotoBloc() : super(const PhotoState(''));
-
-  @override
-  Stream<PhotoState> mapEventToState(PhotoEvent event) async* {
-    if (event is SetPhotoName) {
-      yield PhotoState(event.name);
-    } else if (event is UpdateNameEvent) {
-      // Здесь вы можете добавить логику обновления имени в базе данных
-      // и затем выдать новое состояние с обновленным именем
-      yield PhotoState(event.newName);
-    }
+// Определение блока
+class MyBloc extends Bloc<MyEvent, String> {
+  MyBloc() : super('') {
+    // Инициализация начального состояния
+    on<SetVariableEvent>((event, emit) {
+      myVariable = event.value; // Обновление переменной новым значением
+      emit(myVariable); // Обновление состояния Bloc новым значением
+    });
   }
+
+  String myVariable = ''; // Ваша переменная
 }
